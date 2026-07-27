@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# Automated visual-QA output — regenerated on demand, never committed.
+shots/
+
+# Third-party press screenshots used ONLY as an internal quality reference for the
+# blind A/B critic. Not game assets, never shipped, never redistributed.
+reference/

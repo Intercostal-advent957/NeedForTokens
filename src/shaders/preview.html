@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>NFT — material preview</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #101216; overflow: hidden; }
+      canvas { display: block; width: 100%; height: 100%; }
+      #label {
+        position: fixed; left: 12px; top: 10px; z-index: 5;
+        font: 12px/1.5 ui-monospace, Menlo, monospace; color: #cfd6e0;
+        text-shadow: 0 1px 2px #000; white-space: pre; opacity: .85;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="label"></div>
+    <script type="module" src="./preview.js"></script>
+  </body>
+</html>

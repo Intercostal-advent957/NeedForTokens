@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#05070c" />
+    <title>NEED FOR TOKENS</title>
+    <!-- No external resources, ever. Every texture, mesh, font and sound in this game is
+         generated at runtime — see CONTRACTS.md §0. -->
+    <link rel="stylesheet" href="/src/ui/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="viewport"></canvas>
+      <div id="ui-root"></div>
+      <div id="boot">
+        <div class="boot-inner">
+          <div class="boot-logo">NEED<span>FOR</span>TOKENS</div>
+          <div class="boot-bar"><i></i></div>
+          <div class="boot-status">INITIALISING</div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
