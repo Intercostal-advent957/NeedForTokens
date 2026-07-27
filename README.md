@@ -3,6 +3,9 @@
 A third-person arcade racing game built in Three.js, targeting the visual quality of a modern
 Need for Speed title.
 
+**[▶ Play it in your browser](https://baptistefalvet.github.io/NeedForTokens/)** — no install, no
+download. Needs a WebGL2 browser and a discrete or Apple-silicon GPU for the higher quality tiers.
+
 **Everything is generated procedurally at runtime.** No `.glb`, no `.hdr`, no textures, no audio
 files, no fonts — nothing is downloaded and nothing is loaded from disk. Every road surface,
 building facade, car body, engine note and letterform in this repository is produced by code.
