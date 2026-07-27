@@ -21,6 +21,37 @@ npm run dev          # http://127.0.0.1:5273
 
 ---
 
+## The prompt
+
+FYI for readers: this repository was produced by Claude Code from the single prompt below.
+Everything else here — the architecture, the QA harness, the blind A/B test, the scores — followed
+from it.
+
+> I want you to build a third-person racing game at the level of the most recent Need for Speed
+> games.
+>
+> It should be utterly perfect, visually beautiful, with every single thing done at AAA quality -
+> from textures to physics to anything you could think of.
+>
+> Fan out sub-agents and have sub-agents tackle each one individually so that the game is utterly
+> perfect. You should /loop on each item and have a separate sub-agent check it visually to ensure
+> it looks triple A. That separate sub-agent should be a really harsh critic, and if it doesn't
+> look triple A, it should keep going.
+>
+> Don't stop until each sub-agent is utterly wowed with the quality when compared with the actual
+> Need for Speed game. It should literally compare them side by side blind and say which one looks
+> better. Do this in ThreeJS. /loop until it's utterly perfect. Fan out sub-agents and ultracode.
+>
+> The game will be called “Need for Tokens”
+
+The "blind side-by-side" instruction is the one that shaped the project most, because it is the
+only part that could return a verdict the build did not control. It became `tools/blindpair.mjs`,
+and it did not say what the prompt hoped it would say — see
+[Independent assessment](#independent-assessment) and [Known gaps](#known-gaps), which report the
+result rather than the ambition.
+
+---
+
 ## What's in it
 
 | | |
