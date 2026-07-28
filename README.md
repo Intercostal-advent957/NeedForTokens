@@ -5,6 +5,9 @@ Need for Speed title.
 
 **[▶ Play it in your browser](https://baptistefalvet.github.io/NeedForTokens/)** — no install, no
 download. Needs a WebGL2 browser and a discrete or Apple-silicon GPU for the higher quality tiers.
+Quality is picked from your GPU and then tracks your frame rate. If you get a black screen, add
+[`?safemode=1`](https://baptistefalvet.github.io/NeedForTokens/?safemode=1) to bypass the post
+chain — if that renders, the fault is a post-processing shader your driver rejected.
 
 **Everything is generated procedurally at runtime.** No `.glb`, no `.hdr`, no textures, no audio
 files, no fonts — nothing is downloaded and nothing is loaded from disk. Every road surface,
@@ -89,7 +92,12 @@ node tools/screenshot.mjs                          # full shot list → shots/la
 node tools/screenshot.mjs --only 01,04 --nohud     # subset, no UI overlay
 node tools/screenshot.mjs --smoke                  # boot gate; non-zero exit on any error
 node tools/screenshot.mjs --quality ultra
+node tools/gputiers.mjs                            # starting-tier rules vs. real GPU strings
 ```
+
+`gputiers.mjs` exists because the starting tier is invisible on the machine you develop on — an
+M4 Pro resolves to `high` whether the rules are right or wrong — so a bad rule ships silently and
+only ever costs someone else frames.
 
 Shots hold the car on the racing line via a QA autopilot (`nft.autoDrive`), so action frames are
 reproducible rather than depending on where the car happened to end up.

@@ -689,3 +689,30 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* GPU-capability notice — shown when a driver rejects a shader or the context resets, so a
+   degraded frame explains itself instead of looking like a broken build. */
+#nft-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2em;
+  transform: translate(-50%, 1.2em);
+  max-width: min(46ch, 88vw);
+  padding: 0.7em 1.1em;
+  border: 1px solid var(--ink-4);
+  border-left: 2px solid var(--gold);
+  background: rgba(4, 6, 10, 0.9);
+  color: var(--ink-2);
+  font: 400 12px/1.5 var(--f-ui);
+  letter-spacing: 0.02em;
+  z-index: 80;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, transform 0.35s ease, visibility 0s linear 0.35s;
+}
+#nft-notice.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}

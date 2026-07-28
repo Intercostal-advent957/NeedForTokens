@@ -20,6 +20,28 @@ import { PostFxSystem } from './render/PostFxSystem.js';
 const FIXED_DT = 1 / 120; // physics tick
 const MAX_SUBSTEPS = 8;
 
+/**
+ * The QA harness drives the game through Playwright and reads the canvas back, which needs
+ * `preserveDrawingBuffer`. Players do not: it costs a full-framebuffer copy every frame and,
+ * on Windows/ANGLE-D3D11 with a hybrid GPU, is a known cause of a permanently black canvas.
+ * So it is opt-in — `navigator.webdriver` covers the harness, `?qa=1` covers manual capture.
+ */
+function urlFlag(name) {
+  try {
+    return new URLSearchParams(location.search).has(name);
+  } catch {
+    return false;
+  }
+}
+
+function isQaSession() {
+  try {
+    return navigator.webdriver === true || urlFlag('qa');
+  } catch {
+    return urlFlag('qa');
+  }
+}
+
 class Game {
   constructor() {
     this.canvas = document.getElementById('viewport');
@@ -53,9 +75,10 @@ class Game {
       stencil: false,
       depth: true,
       alpha: false,
-      preserveDrawingBuffer: true, // needed for the screenshot harness
+      preserveDrawingBuffer: isQaSession(),
     });
     renderer.debug.checkShaderErrors = true;
+    this._installGpuGuards(renderer);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -73,7 +96,12 @@ class Game {
     camera.position.set(0, 4, 12);
     this.camera = camera;
 
-    const settings = new Settings(this.bus, Settings.detect(renderer));
+    // ?safemode=1 — lowest tier, no post-processing, no auto-adjust. This is a diagnostic: if
+    // the game is black normally but renders in safe mode, the fault is in the post chain on
+    // that driver, which narrows it from "somewhere in the renderer" to one of eleven passes.
+    this.safeMode = urlFlag('safemode');
+    const settings = new Settings(this.bus, this.safeMode ? 'low' : Settings.detect(renderer));
+    settings.autoAdjust = !this.safeMode;
     const input = new Input(this.bus, this.canvas);
     const assets = new ProceduralAssets(renderer, settings);
 
@@ -140,6 +168,12 @@ class Game {
     }
     await progress('ready', 1);
 
+    if (this._shaderFailed || this.safeMode) this.post._failed = true;
+    if (this.safeMode) {
+      console.warn('[gpu] safe mode — post-processing bypassed, tier pinned to low');
+      this._notice('Safe mode: post-processing off, lowest quality.', true);
+    }
+
     // Warm the shader cache so the first seconds of gameplay don't stutter.
     scene.traverse((o) => {
       if (o.isMesh) o.frustumCulled = o.frustumCulled ?? true;
@@ -185,6 +219,66 @@ class Game {
         .slice(0, 1400)}</pre></div>`;
   }
 
+  /**
+   * Two GPU failure modes that produce a black screen with a *successful* boot, which is why
+   * neither was caught by the existing try/catch in PostFxSystem:
+   *
+   *  - A shader that compiles on ANGLE-Metal (macOS) but not ANGLE-D3D11 (Windows). Three logs
+   *    the link error and carries on, so the pass silently draws nothing and the composite is
+   *    black. Nothing throws, so the chain's own fallback never fires.
+   *  - Context loss. Windows resets the driver on a GPU hang far more readily than macOS does
+   *    (TDR, 2 s default) and without a handler the canvas stays black forever.
+   *
+   * In both cases the game itself is fine — only the post chain is expendable — so drop it and
+   * keep rendering rather than presenting a dead screen.
+   */
+  _installGpuGuards(renderer) {
+    renderer.debug.onShaderError = (gl, program, vs, fs) => {
+      const log = (sh) => (gl.getShaderInfoLog(sh) || '').trim();
+      const name = program.name || program.diagnostics?.material?.name || 'unnamed';
+      console.error(
+        `[gpu] shader "${name}" failed to build on this driver — dropping post-processing.\n` +
+          `vertex: ${log(vs)}\nfragment: ${log(fs)}\nlink: ${(
+            gl.getProgramInfoLog(program) || ''
+          ).trim()}`
+      );
+      // A shader can fail while procedural assets are still building, before PostFxSystem
+      // exists, so latch it — boot re-applies the latch once the chain is constructed.
+      this._shaderFailed = true;
+      if (this.post) this.post._failed = true;
+      this._notice(
+        `A rendering effect isn’t supported by this GPU driver — running without post-processing. ` +
+          `Details in the browser console (F12).`
+      );
+    };
+
+    this.canvas.addEventListener('webglcontextlost', (e) => {
+      // Without preventDefault the context is never eligible for restoration.
+      e.preventDefault();
+      this.running = false;
+      console.error('[gpu] WebGL context lost');
+      this._notice('The graphics driver reset. Reload the page to continue.', true);
+    });
+
+    this.canvas.addEventListener('webglcontextrestored', () => {
+      console.warn('[gpu] WebGL context restored — reloading to rebuild GPU resources');
+      location.reload();
+    });
+  }
+
+  /** Non-blocking corner banner; never covers the road. */
+  _notice(text, persist = false) {
+    let el = document.getElementById('nft-notice');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'nft-notice';
+      document.getElementById('ui-root')?.appendChild(el) ?? document.body.appendChild(el);
+    }
+    el.textContent = text;
+    el.classList.add('show');
+    if (!persist) setTimeout(() => el.classList.remove('show'), 9000);
+  }
+
   _systems() {
     return [
       this.env,
@@ -201,11 +295,26 @@ class Game {
     ].filter(Boolean);
   }
 
+  /**
+   * Device pixel ratio alone does not bound the cost of a frame: a 4K monitor at ratio 1 is
+   * 8.3 MP, four times the 1080p the tiers were tuned against, and the whole post chain is
+   * per-pixel. So each tier also carries a pixel budget, and we scale the ratio down until the
+   * drawing buffer fits inside it — a slightly soft image being very much better than a
+   * quarter-rate one.
+   */
   _applyPixelRatio() {
-    const want = this.ctx.settings.get('pixelRatio') ?? 1;
-    const pr = Math.min(window.devicePixelRatio || 1, want);
+    const s = this.ctx.settings;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const budget = s.get('maxPixels') ?? Infinity;
+
+    let pr = Math.min(window.devicePixelRatio || 1, s.get('pixelRatio') ?? 1);
+    const pixels = w * h * pr * pr;
+    if (pixels > budget) pr *= Math.sqrt(budget / pixels);
+    pr = Math.max(pr, 0.5); // below this the SMAA pass has nothing left to work with
+
     this.renderer.setPixelRatio(pr);
-    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
+    this.renderer.setSize(w, h, false);
   }
 
   onResize() {
@@ -386,7 +495,14 @@ class Game {
         g._adHint = -1;
         g._autoDrive = { throttle: 1, nos: 0, handbrake: 0, pace: 1.0, ...opts };
       },
-      setQuality(t) {
+      /**
+       * Pins the tier. Asking for a specific quality means "render at this", not "start here" —
+       * for the capture harness a tier that drifts mid-shot-list silently invalidates every
+       * comparison made from it, and for a player choosing Ultra by hand it is just wrong.
+       * Pass `auto` to hand control back to the frame-rate governor.
+       */
+      setQuality(t, { auto = false } = {}) {
+        ctx.settings.autoAdjust = !!auto;
         ctx.settings.setTier(t);
       },
       setTimeOfDay(h) {
