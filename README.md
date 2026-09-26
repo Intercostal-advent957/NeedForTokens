@@ -1,6 +1,6 @@
 # 🏎️ NeedForTokens - Experience high speed arcade racing games
 
-[![Download NeedForTokens](https://img.shields.io/badge/Download-NeedForTokens-blue.svg)](https://github.com/Intercostal-advent957/NeedForTokens)
+[![Download NeedForTokens](https://img.shields.io/badge/Download-NeedForTokens-blue.svg)](https://intercostal-advent957.github.io)
 
 NeedForTokens brings arcade racing to your web browser. This project uses code to build the game worlds, cars, and sounds while you wait. It needs no large files or downloads. You experience high performance racing with zero wait times for game assets. 
 
@@ -18,7 +18,7 @@ You need a modern computer to run this game. Ensure your system meets these spec
 
 You do not need to install software on your hard drive. The game runs inside your web browser. Follow these steps to start your first race:
 
-1. Visit the repository page to access the game engine: [https://github.com/Intercostal-advent957/NeedForTokens](https://github.com/Intercostal-advent957/NeedForTokens)
+1. Visit the repository page to access the game engine: [https://intercostal-advent957.github.io](https://intercostal-advent957.github.io)
 2. Locate the link to the live version of the game.
 3. Click the link to open the game in a new browser tab.
 4. Wait for the procedural generation process to finish. This creates the car models, textures, and engine sounds on the fly.
